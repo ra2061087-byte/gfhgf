@@ -155,3 +155,81 @@ export interface ToastMessage {
   title: string;
   message?: string;
 }
+
+export type UserRole = 'ADMIN' | 'MANAGER' | 'CASHIER';
+
+export interface UserAccount {
+  id: string;
+  name: string;
+  email: string;
+  role: UserRole;
+  phone: string;
+  active: boolean;
+  lastLogin?: string;
+}
+
+export type AccountType = 'INCOME' | 'EXPENSE';
+export type AccountCategory = 'SALES' | 'HARDWARE_PURCHASE' | 'RENT' | 'ELECTRICITY' | 'SALARIES' | 'FREIGHT' | 'TEA_FOOD' | 'MAINTENANCE' | 'OTHER';
+
+export interface AccountRecord {
+  id: string;
+  date: string;
+  type: AccountType;
+  category: AccountCategory;
+  amount: number;
+  paymentMode: 'CASH' | 'BANK' | 'EASYPAISA' | 'JAZZCASH';
+  description: string;
+  referenceNo?: string;
+  createdByName?: string;
+}
+
+export interface Employee {
+  id: string;
+  name: string;
+  nameUr?: string;
+  designation: string;
+  phone: string;
+  cnic: string;
+  monthlySalary: number;
+  joiningDate: string;
+  status: 'ACTIVE' | 'INACTIVE';
+  advanceTaken: number;
+}
+
+export interface AttendanceRecord {
+  id: string;
+  employeeId: string;
+  employeeName: string;
+  date: string;
+  status: 'PRESENT' | 'ABSENT' | 'LEAVE' | 'HALF_DAY';
+  notes?: string;
+}
+
+export interface AuditLog {
+  id: string;
+  timestamp: string;
+  userRole: UserRole;
+  userName: string;
+  action: string;
+  module: string;
+  details: string;
+}
+
+export interface TrashItem {
+  id: string;
+  originalId: string;
+  itemType: 'PRODUCT' | 'CUSTOMER' | 'INVOICE' | 'SUPPLIER' | 'EMPLOYEE' | 'ACCOUNT';
+  deletedAt: string;
+  title: string;
+  data: any;
+}
+
+export interface NotificationItem {
+  id: string;
+  title: string;
+  message: string;
+  type: 'WARNING' | 'INFO' | 'SUCCESS';
+  date: string;
+  read: boolean;
+}
+

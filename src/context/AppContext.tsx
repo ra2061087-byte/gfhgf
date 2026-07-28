@@ -9,7 +9,13 @@ import {
   Supplier, 
   LedgerEntry, 
   ToastMessage,
-  InvoiceItem
+  InvoiceItem,
+  AccountRecord,
+  Employee,
+  AuditLog,
+  TrashItem,
+  NotificationItem,
+  UserRole
 } from '../types';
 import { 
   initialCompanySettings, 
@@ -17,7 +23,11 @@ import {
   initialCustomers, 
   initialSuppliers, 
   initialInvoices, 
-  initialLedgerEntries 
+  initialLedgerEntries,
+  initialAccounts,
+  initialEmployees,
+  initialAuditLogs,
+  initialNotifications
 } from '../data/initialData';
 
 interface AppContextType {
@@ -32,6 +42,9 @@ interface AppContextType {
   settings: SystemSettings;
   updateSettings: (newSettings: Partial<SystemSettings>) => void;
   
+  currentRole: UserRole;
+  setCurrentRole: (role: UserRole) => void;
+
   products: Product[];
   addProduct: (product: Omit<Product, 'id' | 'updatedAt'>) => void;
   updateProduct: (id: string, product: Partial<Product>) => void;
@@ -55,6 +68,26 @@ interface AppContextType {
   updateSupplier: (id: string, supplier: Partial<Supplier>) => void;
   deleteSupplier: (id: string) => void;
   
+  accounts: AccountRecord[];
+  addAccountRecord: (acc: Omit<AccountRecord, 'id'>) => void;
+  deleteAccountRecord: (id: string) => void;
+
+  employees: Employee[];
+  addEmployee: (emp: Omit<Employee, 'id'>) => void;
+  updateEmployee: (id: string, emp: Partial<Employee>) => void;
+  deleteEmployee: (id: string) => void;
+
+  auditLogs: AuditLog[];
+  logAction: (action: string, module: string, details: string) => void;
+
+  trashItemList: TrashItem[];
+  restoreFromTrash: (trashId: string) => void;
+  permanentlyDeleteFromTrash: (trashId: string) => void;
+
+  notifications: NotificationItem[];
+  markNotificationAsRead: (id: string) => void;
+  clearAllNotifications: () => void;
+
   ledgerEntries: LedgerEntry[];
   
   toasts: ToastMessage[];
@@ -72,17 +105,22 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 const STORAGE_KEY = 'kamil_traders_data_v1';
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Try loading from localStorage or fallback to initial dataset
   const [dataLoaded, setDataLoaded] = useState(false);
   
   const [language, setLanguageState] = useState<Language>('ur');
   const [theme, setThemeState] = useState<ThemeMode>('light');
+  const [currentRole, setCurrentRole] = useState<UserRole>('ADMIN');
   const [settings, setSettings] = useState<SystemSettings>(initialCompanySettings);
   const [products, setProducts] = useState<Product[]>(initialProducts);
   const [customers, setCustomers] = useState<Customer[]>(initialCustomers);
   const [invoices, setInvoices] = useState<Invoice[]>(initialInvoices);
   const [suppliers, setSuppliers] = useState<Supplier[]>(initialSuppliers);
   const [ledgerEntries, setLedgerEntries] = useState<LedgerEntry[]>(initialLedgerEntries);
+  const [accounts, setAccounts] = useState<AccountRecord[]>(initialAccounts);
+  const [employees, setEmployees] = useState<Employee[]>(initialEmployees);
+  const [auditLogs, setAuditLogs] = useState<AuditLog[]>(initialAuditLogs);
+  const [trashItemList, setTrashItemList] = useState<TrashItem[]>([]);
+  const [notifications, setNotifications] = useState<NotificationItem[]>(initialNotifications);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
   // Load state from localStorage on mount
@@ -94,11 +132,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (parsed.settings) setSettings(parsed.settings);
         if (parsed.language) setLanguageState(parsed.language);
         if (parsed.theme) setThemeState(parsed.theme);
+        if (parsed.currentRole) setCurrentRole(parsed.currentRole);
         if (parsed.products) setProducts(parsed.products);
         if (parsed.customers) setCustomers(parsed.customers);
         if (parsed.invoices) setInvoices(parsed.invoices);
         if (parsed.suppliers) setSuppliers(parsed.suppliers);
         if (parsed.ledgerEntries) setLedgerEntries(parsed.ledgerEntries);
+        if (parsed.accounts) setAccounts(parsed.accounts);
+        if (parsed.employees) setEmployees(parsed.employees);
+        if (parsed.auditLogs) setAuditLogs(parsed.parsedAuditLogs || parsed.auditLogs);
+        if (parsed.trashItemList) setTrashItemList(parsed.trashItemList);
+        if (parsed.notifications) setNotifications(parsed.notifications);
       }
     } catch (err) {
       console.error('Failed to load local storage state:', err);
@@ -114,18 +158,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const storeObj = {
         language,
         theme,
+        currentRole,
         settings,
         products,
         customers,
         invoices,
         suppliers,
-        ledgerEntries
+        ledgerEntries,
+        accounts,
+        employees,
+        auditLogs,
+        trashItemList,
+        notifications
       };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(storeObj));
     } catch (err) {
       console.error('Failed to save to local storage:', err);
     }
-  }, [dataLoaded, language, theme, settings, products, customers, invoices, suppliers, ledgerEntries]);
+  }, [dataLoaded, language, theme, currentRole, settings, products, customers, invoices, suppliers, ledgerEntries, accounts, employees, auditLogs, trashItemList, notifications]);
 
   // Apply RTL/LTR and Theme classes to html/body
   useEffect(() => {
@@ -151,7 +201,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const newToast: ToastMessage = { ...toast, id };
     setToasts((prev) => [...prev, newToast]);
     
-    // Auto dismiss after 4 seconds
     setTimeout(() => {
       removeToast(id);
     }, 4000);
@@ -159,6 +208,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const removeToast = (id: string) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
+  };
+
+  const logAction = (action: string, module: string, details: string) => {
+    const newLog: AuditLog = {
+      id: 'log_' + Date.now().toString(),
+      timestamp: new Date().toLocaleString(),
+      userRole: currentRole,
+      userName: currentRole === 'ADMIN' ? 'Kamil Proprietor' : currentRole === 'MANAGER' ? 'Manager' : 'Counter Cashier',
+      action,
+      module,
+      details
+    };
+    setAuditLogs((prev) => [newLog, ...prev]);
   };
 
   const setLanguage = (lang: Language) => {
@@ -190,6 +252,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
       return updated;
     });
+    logAction('Update System Settings', 'Settings', 'System configuration updated.');
     addToast({
       type: 'success',
       title: language === 'ur' ? 'ترتیبات محفوظ ہو گئیں' : 'Settings Saved',
@@ -206,6 +269,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       updatedAt: new Date().toISOString()
     };
     setProducts((prev) => [newProduct, ...prev]);
+    logAction('Add Product', 'Products', `Added item ${newProduct.nameEn} (${newProduct.code})`);
     addToast({
       type: 'success',
       title: language === 'ur' ? 'سامان شامل ہو گیا' : 'Product Added',
@@ -217,6 +281,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setProducts((prev) =>
       prev.map((p) => (p.id === id ? { ...p, ...productData, updatedAt: new Date().toISOString() } : p))
     );
+    logAction('Update Product', 'Products', `Updated item ID ${id}`);
     addToast({
       type: 'info',
       title: language === 'ur' ? 'سامان کی معلومات اپڈیٹ' : 'Product Updated',
@@ -226,10 +291,25 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const deleteProduct = (id: string) => {
     const target = products.find((p) => p.id === id);
+    if (!target) return;
+
+    // Move to soft-delete trash
+    const trashItem: TrashItem = {
+      id: 'trash_' + Date.now().toString(),
+      originalId: target.id,
+      itemType: 'PRODUCT',
+      deletedAt: new Date().toLocaleString(),
+      title: `${target.nameUr || target.nameEn} (${target.code})`,
+      data: target
+    };
+
+    setTrashItemList((prev) => [trashItem, ...prev]);
     setProducts((prev) => prev.filter((p) => p.id !== id));
+    logAction('Delete Product', 'Products', `Deleted item ${target.nameEn}`);
+
     addToast({
       type: 'warning',
-      title: language === 'ur' ? 'سامان ڈیلیٹ کر دیا گیا' : 'Product Deleted',
+      title: language === 'ur' ? 'سامان ڈیلیٹ (ری سائیکل بن میں منتقل)' : 'Product Moved to Trash',
       message: target?.nameEn || id
     });
   };
@@ -244,6 +324,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         return p;
       })
     );
+    logAction('Adjust Stock', 'Stock', `Adjusted stock ${qtyChange > 0 ? '+' : ''}${qtyChange} for ID ${id}`);
     addToast({
       type: 'success',
       title: language === 'ur' ? 'سٹاک تبدیل ہو گیا' : 'Stock Adjusted',
@@ -262,6 +343,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       createdAt: new Date().toISOString()
     };
     setCustomers((prev) => [newCustomer, ...prev]);
+    logAction('Add Customer', 'Customers', `Added customer ${newCustomer.name}`);
     addToast({
       type: 'success',
       title: language === 'ur' ? 'نیا کسٹمر شامل ہو گیا' : 'Customer Added',
@@ -271,6 +353,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const updateCustomer = (id: string, customerData: Partial<Customer>) => {
     setCustomers((prev) => prev.map((c) => (c.id === id ? { ...c, ...customerData } : c)));
+    logAction('Update Customer', 'Customers', `Updated customer ID ${id}`);
     addToast({
       type: 'info',
       title: language === 'ur' ? 'کسٹمر ریکارڈ اپڈیٹ' : 'Customer Updated'
@@ -278,7 +361,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const deleteCustomer = (id: string) => {
+    const target = customers.find((c) => c.id === id);
+    if (!target) return;
+
+    const trashItem: TrashItem = {
+      id: 'trash_' + Date.now().toString(),
+      originalId: target.id,
+      itemType: 'CUSTOMER',
+      deletedAt: new Date().toLocaleString(),
+      title: `${target.name} (${target.phone})`,
+      data: target
+    };
+
+    setTrashItemList((prev) => [trashItem, ...prev]);
     setCustomers((prev) => prev.filter((c) => c.id !== id));
+    logAction('Delete Customer', 'Customers', `Deleted customer ${target.name}`);
+
     addToast({
       type: 'warning',
       title: language === 'ur' ? 'کسٹمر ریکارڈ ڈیلیٹ' : 'Customer Deleted'
@@ -291,12 +389,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     const newBalance = Math.max(0, target.outstandingBalance - amount);
 
-    // Update customer balance
     setCustomers((prev) =>
       prev.map((c) => (c.id === customerId ? { ...c, outstandingBalance: newBalance } : c))
     );
 
-    // Create ledger entry
     const newLedger: LedgerEntry = {
       id: 'l_' + Date.now().toString(),
       customerId,
@@ -309,12 +405,93 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
 
     setLedgerEntries((prev) => [newLedger, ...prev]);
+    logAction('Customer Payment', 'Khata', `Received Rs. ${amount} from ${target.name}`);
 
     addToast({
       type: 'success',
       title: language === 'ur' ? 'وصولی درج کر لی گئی' : 'Payment Recorded',
       message: `Rs. ${amount.toLocaleString()} ${language === 'ur' ? 'وصول ہوئے' : 'received from'} ${target.name}`
     });
+  };
+
+  // Accounts Actions
+  const addAccountRecord = (accData: Omit<AccountRecord, 'id'>) => {
+    const id = 'acc_' + Date.now().toString();
+    const newRecord: AccountRecord = { ...accData, id };
+    setAccounts((prev) => [newRecord, ...prev]);
+    logAction('Add Account Transaction', 'Accounts', `${newRecord.type}: Rs. ${newRecord.amount} (${newRecord.category})`);
+    addToast({
+      type: 'success',
+      title: language === 'ur' ? 'ٹرانزیکشن اینٹری محفوظ ہو گئی' : 'Account Transaction Added',
+      message: `Rs. ${newRecord.amount.toLocaleString()}`
+    });
+  };
+
+  const deleteAccountRecord = (id: string) => {
+    setAccounts((prev) => prev.filter((a) => a.id !== id));
+    logAction('Delete Account Transaction', 'Accounts', `Deleted transaction ${id}`);
+  };
+
+  // Employees Actions
+  const addEmployee = (empData: Omit<Employee, 'id'>) => {
+    const id = 'emp_' + Date.now().toString();
+    const newEmp: Employee = { ...empData, id };
+    setEmployees((prev) => [newEmp, ...prev]);
+    logAction('Add Employee', 'Employees', `Added employee ${newEmp.name}`);
+    addToast({
+      type: 'success',
+      title: language === 'ur' ? 'نیا ملازم شامل ہو گیا' : 'Employee Added',
+      message: newEmp.name
+    });
+  };
+
+  const updateEmployee = (id: string, empData: Partial<Employee>) => {
+    setEmployees((prev) => prev.map((e) => (e.id === id ? { ...e, ...empData } : e)));
+    logAction('Update Employee', 'Employees', `Updated employee ${id}`);
+  };
+
+  const deleteEmployee = (id: string) => {
+    setEmployees((prev) => prev.filter((e) => e.id !== id));
+    logAction('Delete Employee', 'Employees', `Deleted employee ${id}`);
+  };
+
+  // Trash / Restore Actions
+  const restoreFromTrash = (trashId: string) => {
+    const target = trashItemList.find((t) => t.id === trashId);
+    if (!target) return;
+
+    if (target.itemType === 'PRODUCT') {
+      setProducts((prev) => [target.data, ...prev]);
+    } else if (target.itemType === 'CUSTOMER') {
+      setCustomers((prev) => [target.data, ...prev]);
+    } else if (target.itemType === 'INVOICE') {
+      setInvoices((prev) => [target.data, ...prev]);
+    } else if (target.itemType === 'SUPPLIER') {
+      setSuppliers((prev) => [target.data, ...prev]);
+    }
+
+    setTrashItemList((prev) => prev.filter((t) => t.id !== trashId));
+    logAction('Restore Record', 'Security', `Restored ${target.itemType} item "${target.title}"`);
+
+    addToast({
+      type: 'success',
+      title: language === 'ur' ? 'ریکارڈ بحال کر دیا گیا' : 'Record Restored',
+      message: target.title
+    });
+  };
+
+  const permanentlyDeleteFromTrash = (trashId: string) => {
+    setTrashItemList((prev) => prev.filter((t) => t.id !== trashId));
+    logAction('Permanent Delete', 'Security', `Permanently purged trash item ${trashId}`);
+  };
+
+  // Notifications Actions
+  const markNotificationAsRead = (id: string) => {
+    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
+  };
+
+  const clearAllNotifications = () => {
+    setNotifications([]);
   };
 
   // Invoice & Sales Actions
@@ -342,18 +519,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
 
     setInvoices((prev) => [newInvoice, ...prev]);
+    logAction('Create Invoice', 'POS Billing', `Created ${newInvoice.type} #${invoiceNo} for Rs. ${newInvoice.grandTotal}`);
 
     // Handle stock adjustments for non-quotations and non-drafts
     if (newInvoice.type !== 'QUOTATION' && newInvoice.paymentStatus !== 'DRAFT') {
       if (newInvoice.type === 'SALES_RETURN') {
-        // Return adds back to stock
         newInvoice.items.forEach((item) => {
           if (item.productId) {
             adjustStock(item.productId, item.qty, `Sales Return ${invoiceNo}`);
           }
         });
       } else {
-        // Normal sale deducts stock
         newInvoice.items.forEach((item) => {
           if (item.productId) {
             adjustStock(item.productId, -item.qty, `Sale ${invoiceNo}`);
@@ -361,7 +537,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         });
       }
 
-      // Handle Customer Khata Ledger if Khata purchase or partial payment
       if (newInvoice.customerId) {
         const cust = customers.find((c) => c.id === newInvoice.customerId);
         if (cust) {
@@ -380,7 +555,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             )
           );
 
-          // Add Ledger entry
           const ledgerEntry: LedgerEntry = {
             id: 'l_' + Date.now().toString(),
             customerId: cust.id,
@@ -413,6 +587,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const updateInvoice = (id: string, invoiceData: Partial<Invoice>) => {
     setInvoices((prev) => prev.map((inv) => (inv.id === id ? { ...inv, ...invoiceData } : inv)));
+    logAction('Update Invoice', 'POS Billing', `Updated invoice ${id}`);
     addToast({
       type: 'info',
       title: language === 'ur' ? 'بل تبدیل کر دیا گیا' : 'Invoice Updated',
@@ -421,7 +596,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const deleteInvoice = (id: string) => {
+    const target = invoices.find((inv) => inv.id === id);
+    if (target) {
+      const trashItem: TrashItem = {
+        id: 'trash_' + Date.now().toString(),
+        originalId: target.id,
+        itemType: 'INVOICE',
+        deletedAt: new Date().toLocaleString(),
+        title: `Invoice #${target.invoiceNo} (Rs. ${target.grandTotal})`,
+        data: target
+      };
+      setTrashItemList((prev) => [trashItem, ...prev]);
+    }
+
     setInvoices((prev) => prev.filter((inv) => inv.id !== id));
+    logAction('Delete Invoice', 'POS Billing', `Deleted invoice ID ${id}`);
     addToast({
       type: 'warning',
       title: language === 'ur' ? 'انوائس ڈیلیٹ کر دی گئی' : 'Invoice Deleted'
@@ -446,12 +635,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     setInvoices((prev) => [convertedInvoice, ...prev.filter((inv) => inv.id !== quotationId)]);
 
-    // Deduct stock for converted sale
     convertedInvoice.items.forEach((item) => {
       if (item.productId) {
         adjustStock(item.productId, -item.qty, `Converted ${newInvoiceNo}`);
       }
     });
+
+    logAction('Convert Quotation', 'POS Billing', `Converted quotation ${quote.invoiceNo} to ${newInvoiceNo}`);
 
     addToast({
       type: 'success',
@@ -465,6 +655,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const id = 's_' + Date.now().toString();
     const newSupplier = { ...sData, id };
     setSuppliers((prev) => [newSupplier, ...prev]);
+    logAction('Add Supplier', 'Suppliers', `Added supplier ${newSupplier.companyName}`);
     addToast({
       type: 'success',
       title: language === 'ur' ? 'نیا سپلائر شامل ہو گیا' : 'Supplier Added',
@@ -474,10 +665,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const updateSupplier = (id: string, sData: Partial<Supplier>) => {
     setSuppliers((prev) => prev.map((s) => (s.id === id ? { ...s, ...sData } : s)));
+    logAction('Update Supplier', 'Suppliers', `Updated supplier ${id}`);
   };
 
   const deleteSupplier = (id: string) => {
     setSuppliers((prev) => prev.filter((s) => s.id !== id));
+    logAction('Delete Supplier', 'Suppliers', `Deleted supplier ${id}`);
   };
 
   // Export / Import Backup Data
@@ -493,7 +686,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         customers,
         invoices,
         suppliers,
-        ledgerEntries
+        ledgerEntries,
+        accounts,
+        employees,
+        auditLogs
       };
       const jsonStr = JSON.stringify(exportObj, null, 2);
       const blob = new Blob([jsonStr], { type: 'application/json' });
@@ -503,6 +699,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       a.download = `kamil_traders_backup_${new Date().toISOString().split('T')[0]}.json`;
       a.click();
       URL.revokeObjectURL(url);
+
+      logAction('Export JSON Backup', 'System', 'Exported full system backup JSON file.');
 
       addToast({
         type: 'success',
@@ -527,6 +725,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (parsed.suppliers) setSuppliers(parsed.suppliers);
       if (parsed.settings) setSettings(parsed.settings);
       if (parsed.ledgerEntries) setLedgerEntries(parsed.ledgerEntries);
+      if (parsed.accounts) setAccounts(parsed.accounts);
+      if (parsed.employees) setEmployees(parsed.employees);
+
+      logAction('Restore JSON Backup', 'System', 'Imported and restored database from JSON file.');
 
       addToast({
         type: 'success',
@@ -551,7 +753,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setInvoices(initialInvoices);
     setSuppliers(initialSuppliers);
     setLedgerEntries(initialLedgerEntries);
+    setAccounts(initialAccounts);
+    setEmployees(initialEmployees);
+    setAuditLogs(initialAuditLogs);
+    setTrashItemList([]);
+    setNotifications(initialNotifications);
     localStorage.removeItem(STORAGE_KEY);
+
     addToast({
       type: 'info',
       title: language === 'ur' ? 'سسٹم ری سیٹ ہو گیا' : 'System Reset',
@@ -570,6 +778,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         toggleTheme,
         settings,
         updateSettings,
+        currentRole,
+        setCurrentRole,
         products,
         addProduct,
         updateProduct,
@@ -589,6 +799,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         addSupplier,
         updateSupplier,
         deleteSupplier,
+        accounts,
+        addAccountRecord,
+        deleteAccountRecord,
+        employees,
+        addEmployee,
+        updateEmployee,
+        deleteEmployee,
+        auditLogs,
+        logAction,
+        trashItemList,
+        restoreFromTrash,
+        permanentlyDeleteFromTrash,
+        notifications,
+        markNotificationAsRead,
+        clearAllNotifications,
         ledgerEntries,
         toasts,
         addToast,

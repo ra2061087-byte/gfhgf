@@ -12,7 +12,11 @@ import {
   Settings as SettingsIcon,
   PhoneCall,
   MapPin,
-  ShieldCheck
+  ShieldCheck,
+  Wallet,
+  UserCheck,
+  Barcode,
+  Lock
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -35,49 +39,73 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const navItems = [
     {
       id: 'dashboard',
-      labelKey: 'dashboard' as const,
+      label: isUrdu ? 'ڈیش بورڈ' : 'Dashboard',
       icon: LayoutDashboard,
       badge: null
     },
     {
       id: 'pos',
-      labelKey: 'posBilling' as const,
+      label: isUrdu ? 'بلنگ اور کوٹیشن' : 'POS & Invoicing',
       icon: Receipt,
       badge: isUrdu ? 'A5 پیڈ' : 'A5 Pad'
     },
     {
       id: 'history',
-      labelKey: 'invoiceHistory' as const,
+      label: isUrdu ? 'انوائس ہسٹری' : 'Invoice History',
       icon: History,
       badge: isUrdu ? 'بلز' : 'Bills'
     },
     {
       id: 'inventory',
-      labelKey: 'inventory' as const,
+      label: isUrdu ? 'انوینٹری اور سٹاک' : 'Inventory & Stock',
       icon: Package,
       badge: null
     },
     {
       id: 'khata',
-      labelKey: 'khataLedger' as const,
+      label: isUrdu ? 'کسٹمر کھاتہ' : 'Customer Khata',
       icon: Users,
       badge: isUrdu ? 'ادھار' : 'Ledger'
     },
     {
       id: 'suppliers',
-      labelKey: 'suppliers' as const,
+      label: isUrdu ? 'سپلائرز اور خرید' : 'Suppliers & Purchases',
       icon: Truck,
       badge: null
     },
     {
+      id: 'accounts',
+      label: isUrdu ? 'مالیاتی کھاتہ جات' : 'Accounts & Cash Book',
+      icon: Wallet,
+      badge: isUrdu ? 'اخراجات' : 'Expenses'
+    },
+    {
+      id: 'employees',
+      label: isUrdu ? 'ملازمین و پے رول' : 'Employees & Payroll',
+      icon: UserCheck,
+      badge: null
+    },
+    {
+      id: 'barcode',
+      label: isUrdu ? 'بارکوڈ و کیو آر کوڈ' : 'Barcode & QR Center',
+      icon: Barcode,
+      badge: null
+    },
+    {
       id: 'reports',
-      labelKey: 'reports' as const,
+      label: isUrdu ? 'مالیاتی رپورٹس' : 'Financial Reports',
       icon: BarChart3,
       badge: null
     },
     {
+      id: 'security',
+      label: isUrdu ? 'سیکیورٹی و لاگز' : 'Security & Audit Logs',
+      icon: ShieldCheck,
+      badge: isUrdu ? 'لاگز' : 'Audit'
+    },
+    {
       id: 'settings',
-      labelKey: 'settings' as const,
+      label: isUrdu ? 'سسٹم سیٹنگز' : 'System Settings',
       icon: SettingsIcon,
       badge: null
     }
@@ -104,34 +132,33 @@ export const Sidebar: React.FC<SidebarProps> = ({
           mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         }`}
       >
-        <div className="p-4 space-y-1.5 overflow-y-auto">
-          <div className="px-3 py-2 text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+        <div className="p-3 space-y-1 overflow-y-auto">
+          <div className="px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
             {isUrdu ? 'مین مینو' : 'Main Navigation'}
           </div>
 
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeTab === item.id;
-            const label = getTranslation(language, item.labelKey);
 
             return (
               <button
                 key={item.id}
                 onClick={() => handleSelect(item.id)}
-                className={`w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-xs sm:text-sm font-semibold transition-all group ${
+                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-all group ${
                   isActive
                     ? 'bg-blue-900 text-white shadow-md shadow-blue-900/20'
                     : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/80 hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
-                <div className="flex items-center gap-3">
-                  <Icon className={`w-5 h-5 transition-transform group-hover:scale-110 ${isActive ? 'text-orange-400' : 'text-slate-400 dark:text-slate-500'}`} />
-                  <span className={isUrdu ? 'font-urdu font-bold text-sm' : ''}>{label}</span>
+                <div className="flex items-center gap-2.5">
+                  <Icon className={`w-4 h-4 transition-transform group-hover:scale-110 ${isActive ? 'text-orange-400' : 'text-slate-400 dark:text-slate-500'}`} />
+                  <span className={isUrdu ? 'font-urdu font-bold text-xs' : ''}>{item.label}</span>
                 </div>
 
                 {item.badge && (
                   <span
-                    className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${
+                    className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold uppercase ${
                       isActive
                         ? 'bg-orange-500 text-white'
                         : 'bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300'
@@ -146,14 +173,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
 
         {/* Bottom Store Contact Card */}
-        <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
-          <div className="bg-blue-900 text-white p-3 rounded-2xl border border-blue-800 shadow-sm">
+        <div className="p-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
+          <div className="bg-blue-900 text-white p-2.5 rounded-xl border border-blue-800 shadow-sm">
             <div className="flex items-center gap-2 mb-1">
               <ShieldCheck className="w-4 h-4 text-orange-400 shrink-0" />
               <span className="text-xs font-bold font-urdu leading-none">{company.nameUr}</span>
             </div>
             <p className="text-[10px] text-blue-200 font-mono">NTN: {company.ntn}</p>
-            <div className="mt-2 pt-2 border-t border-blue-800/80 flex items-center gap-1.5 text-[10px] text-blue-200">
+            <div className="mt-1.5 pt-1.5 border-t border-blue-800/80 flex items-center gap-1.5 text-[10px] text-blue-200">
               <PhoneCall className="w-3 h-3 text-orange-400 shrink-0" />
               <span className="font-semibold">{company.phone}</span>
             </div>
@@ -163,3 +190,4 @@ export const Sidebar: React.FC<SidebarProps> = ({
     </>
   );
 };
+

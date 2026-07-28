@@ -8,7 +8,11 @@ import { InvoiceHistory } from './components/InvoiceHistory';
 import { InventoryManager } from './components/InventoryManager';
 import { KhataManager } from './components/KhataManager';
 import { SupplierManager } from './components/SupplierManager';
+import { AccountsManager } from './components/AccountsManager';
+import { EmployeeManager } from './components/EmployeeManager';
+import { BarcodeManager } from './components/BarcodeManager';
 import { ReportsManager } from './components/ReportsManager';
+import { AuditLogManager } from './components/AuditLogManager';
 import { SettingsModule } from './components/SettingsModule';
 import { ToastContainer } from './components/ToastContainer';
 import { Invoice } from './types';
@@ -85,7 +89,15 @@ function MainLayout() {
 
           {activeTab === 'suppliers' && <SupplierManager />}
 
+          {activeTab === 'accounts' && <AccountsManager />}
+
+          {activeTab === 'employees' && <EmployeeManager />}
+
+          {activeTab === 'barcode' && <BarcodeManager />}
+
           {activeTab === 'reports' && <ReportsManager />}
+
+          {activeTab === 'security' && <AuditLogManager />}
 
           {activeTab === 'settings' && <SettingsModule />}
         </main>

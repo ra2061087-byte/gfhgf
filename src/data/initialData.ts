@@ -395,3 +395,147 @@ export const initialLedgerEntries: LedgerEntry[] = [
     paymentMethod: 'CASH'
   }
 ];
+
+export const initialAccounts = [
+  {
+    id: 'acc_1',
+    date: new Date().toISOString().split('T')[0],
+    type: 'EXPENSE' as const,
+    category: 'RENT' as const,
+    amount: 35000,
+    paymentMode: 'CASH' as const,
+    description: 'دکان کا ماہانہ کرایہ - ریلوے روڈ پلازہ',
+    referenceNo: 'RENT-JUL-26',
+    createdByName: 'Admin'
+  },
+  {
+    id: 'acc_2',
+    date: new Date().toISOString().split('T')[0],
+    type: 'EXPENSE' as const,
+    category: 'ELECTRICITY' as const,
+    amount: 18450,
+    paymentMode: 'BANK' as const,
+    description: 'FESCO بجلی کا بل ادا کیا',
+    referenceNo: 'FESCO-88231',
+    createdByName: 'Admin'
+  },
+  {
+    id: 'acc_3',
+    date: new Date().toISOString().split('T')[0],
+    type: 'EXPENSE' as const,
+    category: 'TEA_FOOD' as const,
+    amount: 1200,
+    paymentMode: 'CASH' as const,
+    description: 'دکان چائے و کسٹمر ریفریشمنٹ خرچہ',
+    createdByName: 'Cashier'
+  },
+  {
+    id: 'acc_4',
+    date: new Date().toISOString().split('T')[0],
+    type: 'INCOME' as const,
+    category: 'SALES' as const,
+    amount: 45000,
+    paymentMode: 'CASH' as const,
+    description: 'نقد فروخت انوائس KT-2026-1001',
+    referenceNo: 'KT-2026-1001',
+    createdByName: 'Cashier'
+  }
+];
+
+export const initialEmployees = [
+  {
+    id: 'emp_1',
+    name: 'Muhammad Tariq',
+    nameUr: 'محمد طارق',
+    designation: 'Head Sales Manager',
+    phone: '0302-7711223',
+    cnic: '33100-1234567-1',
+    monthlySalary: 45000,
+    joiningDate: '2023-01-15',
+    status: 'ACTIVE' as const,
+    advanceTaken: 5000
+  },
+  {
+    id: 'emp_2',
+    name: 'Ali Raza',
+    nameUr: 'علی رضا',
+    designation: 'Store Keeper & Counter Cashier',
+    phone: '0313-9876543',
+    cnic: '33100-7654321-9',
+    monthlySalary: 32000,
+    joiningDate: '2024-03-01',
+    status: 'ACTIVE' as const,
+    advanceTaken: 0
+  }
+];
+
+export const initialAuditLogs = [
+  {
+    id: 'log_1',
+    timestamp: new Date().toLocaleString(),
+    userRole: 'ADMIN' as const,
+    userName: 'Kamil Proprietor',
+    action: 'System Startup & Database Synced',
+    module: 'System',
+    details: 'System loaded with 10 products, 4 customers, and 3 initial invoices.'
+  },
+  {
+    id: 'log_2',
+    timestamp: new Date().toLocaleString(),
+    userRole: 'CASHIER' as const,
+    userName: 'Ali Raza Counter',
+    action: 'Invoice Created',
+    module: 'POS Billing',
+    details: 'Generated Sale Invoice #KT-2026-1001 for Rs. 45,000'
+  }
+];
+
+export const initialUserAccounts = [
+  {
+    id: 'usr_1',
+    name: 'Kamil Proprietor (Admin)',
+    email: 'admin@kamiltraders.com',
+    role: 'ADMIN' as const,
+    phone: '0300-6560253',
+    active: true,
+    lastLogin: 'Today, 09:00 AM'
+  },
+  {
+    id: 'usr_2',
+    name: 'Tariq Manager',
+    email: 'manager@kamiltraders.com',
+    role: 'MANAGER' as const,
+    phone: '0302-7711223',
+    active: true,
+    lastLogin: 'Today, 09:15 AM'
+  },
+  {
+    id: 'usr_3',
+    name: 'Ali Counter Cashier',
+    email: 'cashier@kamiltraders.com',
+    role: 'CASHIER' as const,
+    phone: '0313-9876543',
+    active: true,
+    lastLogin: 'Today, 08:30 AM'
+  }
+];
+
+export const initialNotifications = [
+  {
+    id: 'notif_1',
+    title: 'کم سٹاک الرٹ (Low Stock)',
+    message: 'بوش اینگل گرائنڈر 4 انچ کا سٹاک صرف 8 پیس باقی ہے!',
+    type: 'WARNING' as const,
+    date: new Date().toISOString().split('T')[0],
+    read: false
+  },
+  {
+    id: 'notif_2',
+    title: 'بقایا جات یاد دہانی',
+    message: 'مقصود احمد (چشتیہ ٹیکسٹائل) کی طرف 125,000 روپے بقایا ہیں۔',
+    type: 'INFO' as const,
+    date: new Date().toISOString().split('T')[0],
+    read: false
+  }
+];
+
