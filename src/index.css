@@ -1,0 +1,185 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --font-urdu: 'Noto Nastaliq Urdu', 'Noto Sans Arabic', sans-serif;
+    --font-english: 'Plus Jakarta Sans', system-ui, sans-serif;
+  }
+
+  body {
+    font-family: var(--font-english);
+    background-color: #F8FAFC;
+  }
+
+  .dark body {
+    background-color: #020617;
+  }
+
+  /* Urdu typography adjustments */
+  .font-urdu {
+    font-family: var(--font-urdu);
+    line-height: 1.8;
+  }
+  
+  [dir="rtl"] .font-urdu {
+    font-family: var(--font-urdu);
+  }
+}
+
+/* Artistic Flair theme utility classes */
+.artistic-card {
+  position: relative;
+  overflow: hidden;
+  background-color: #ffffff;
+  border-radius: 1.5rem;
+  border: 1px solid #f1f5f9;
+  box-shadow: 0 20px 25px -5px rgba(226, 232, 240, 0.5), 0 8px 10px -6px rgba(226, 232, 240, 0.3);
+}
+
+.dark .artistic-card {
+  background-color: #0f172a;
+  border-color: #1e293b;
+  box-shadow: none;
+}
+
+.artistic-glow-orange {
+  position: absolute;
+  bottom: -3rem;
+  right: -3rem;
+  width: 16rem;
+  height: 16rem;
+  background-color: rgba(249, 115, 22, 0.06);
+  border-radius: 9999px;
+  filter: blur(48px);
+  pointer-events: none;
+}
+
+.artistic-glow-blue {
+  position: absolute;
+  top: -3rem;
+  left: -3rem;
+  width: 16rem;
+  height: 16rem;
+  background-color: rgba(30, 58, 138, 0.06);
+  border-radius: 9999px;
+  filter: blur(48px);
+  pointer-events: none;
+}
+
+.artistic-label {
+  font-size: 0.625rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #1e3a8a;
+}
+
+.dark .artistic-label {
+  color: #60a5fa;
+}
+
+.artistic-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.875rem;
+  background-color: rgba(30, 58, 138, 0.05);
+  color: #1e3a8a;
+  border-radius: 9999px;
+  font-size: 0.625rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  border: 1px solid rgba(30, 58, 138, 0.1);
+}
+
+.dark .artistic-pill {
+  background-color: rgba(30, 58, 138, 0.4);
+  color: #93c5fd;
+  border-color: rgba(147, 197, 253, 0.2);
+}
+
+.artistic-btn-primary {
+  background-color: #1e3a8a;
+  color: #ffffff;
+  font-weight: 700;
+  border-radius: 0.875rem;
+  box-shadow: 0 10px 15px -3px rgba(30, 58, 138, 0.3);
+  transition: all 0.2s ease-in-out;
+}
+
+.artistic-btn-primary:hover {
+  background-color: #1e40af;
+  transform: translateY(-1px);
+}
+
+.artistic-btn-primary:active {
+  transform: translateY(0);
+}
+
+.artistic-btn-accent {
+  background-color: #f97316;
+  color: #ffffff;
+  font-weight: 700;
+  border-radius: 0.875rem;
+  box-shadow: 0 10px 15px -3px rgba(249, 115, 22, 0.35);
+  transition: all 0.2s ease-in-out;
+}
+
+.artistic-btn-accent:hover {
+  background-color: #ea580c;
+  transform: translateY(-1px);
+}
+
+.artistic-btn-accent:active {
+  transform: translateY(0);
+}
+
+/* Print Styles for A5 Quotation/Invoice Pad */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  
+  .printable-a5-pad, .printable-a5-pad * {
+    visibility: visible;
+  }
+  
+  .printable-a5-pad {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 148mm !important;
+    min-height: 210mm !important;
+    margin: 0 !important;
+    padding: 8mm !important;
+    box-shadow: none !important;
+    border: none !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  @page {
+    size: A5 portrait;
+    margin: 0;
+  }
+}
+
+/* Scrollbar styles */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.03);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 9999px;
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+

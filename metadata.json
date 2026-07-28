@@ -1,0 +1,6 @@
+{
+  "name": "Kamil Traders - Hardware Management System",
+  "description": "Production-ready Hardware & Machinery Parts Shop Management System for Kamil Traders with POS, A5 Quotation/Invoice billing in English & Urdu, Inventory, Khata Customer Ledger, Supplier Management, Reports, and Settings.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
