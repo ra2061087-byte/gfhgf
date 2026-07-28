@@ -11,6 +11,7 @@ export const translations = {
     // Navigation
     dashboard: 'Dashboard',
     posBilling: 'POS & Invoicing',
+    invoiceHistory: 'Bill History & Invoices',
     inventory: 'Inventory & Stock',
     khataLedger: 'Customer Khata',
     suppliers: 'Suppliers & Purchases',

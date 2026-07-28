@@ -320,11 +320,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Invoice & Sales Actions
   const addInvoice = (invoiceData: Omit<Invoice, 'id' | 'invoiceNo'> & { customInvoiceNo?: string }) => {
     const nextNum = invoices.length + 1003;
-    const prefix = invoiceData.type === 'QUOTATION' ? 'KT-Q-2026-' : 'KT-2026-';
-    const invoiceNo = invoiceData.customInvoiceNo || `${prefix}${nextNum}`;
+    const prefix = invoiceData.type === 'QUOTATION' 
+      ? 'KT-Q-2026-' 
+      : invoiceData.type === 'SALES_RETURN' 
+      ? 'KT-SR-2026-' 
+      : 'KT-2026-';
+    
+    const formattedNum = String(nextNum).padStart(6, '0');
+    const invoiceNo = invoiceData.customInvoiceNo || invoiceData.manualInvoiceNo || `${prefix}${formattedNum}`;
     const id = 'inv_' + Date.now().toString();
 
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+
     const newInvoice: Invoice = {
+      time: timeStr,
+      financialYear: '2025-2026',
       ...invoiceData,
       id,
       invoiceNo
@@ -332,21 +343,34 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     setInvoices((prev) => [newInvoice, ...prev]);
 
-    // Deduct stock for actual final sales
-    if (newInvoice.type === 'INVOICE') {
-      newInvoice.items.forEach((item) => {
-        if (item.productId) {
-          adjustStock(item.productId, -item.qty, `Sale ${invoiceNo}`);
-        }
-      });
+    // Handle stock adjustments for non-quotations and non-drafts
+    if (newInvoice.type !== 'QUOTATION' && newInvoice.paymentStatus !== 'DRAFT') {
+      if (newInvoice.type === 'SALES_RETURN') {
+        // Return adds back to stock
+        newInvoice.items.forEach((item) => {
+          if (item.productId) {
+            adjustStock(item.productId, item.qty, `Sales Return ${invoiceNo}`);
+          }
+        });
+      } else {
+        // Normal sale deducts stock
+        newInvoice.items.forEach((item) => {
+          if (item.productId) {
+            adjustStock(item.productId, -item.qty, `Sale ${invoiceNo}`);
+          }
+        });
+      }
 
       // Handle Customer Khata Ledger if Khata purchase or partial payment
       if (newInvoice.customerId) {
         const cust = customers.find((c) => c.id === newInvoice.customerId);
         if (cust) {
-          const unpaidBalance = newInvoice.balanceDue;
-          const updatedTotalPurchases = cust.totalPurchases + newInvoice.grandTotal;
-          const updatedOutstanding = cust.outstandingBalance + unpaidBalance;
+          const isReturn = newInvoice.type === 'SALES_RETURN';
+          const unpaidBalance = isReturn ? -newInvoice.balanceDue : newInvoice.balanceDue;
+          const updatedTotalPurchases = isReturn 
+            ? cust.totalPurchases - newInvoice.grandTotal 
+            : cust.totalPurchases + newInvoice.grandTotal;
+          const updatedOutstanding = Math.max(0, cust.outstandingBalance + unpaidBalance);
 
           setCustomers((prev) =>
             prev.map((c) =>
@@ -361,10 +385,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             id: 'l_' + Date.now().toString(),
             customerId: cust.id,
             date: newInvoice.date,
-            type: 'SALE',
+            type: isReturn ? 'RETURN' : 'SALE',
             amount: newInvoice.grandTotal,
             balanceAfter: updatedOutstanding,
-            description: `Hardware Sale Invoice ${invoiceNo}`,
+            description: isReturn ? `Return Invoice ${invoiceNo}` : `Hardware Sale Invoice ${invoiceNo}`,
             referenceNo: invoiceNo,
             paymentMethod: newInvoice.paymentMethod
           };
@@ -378,6 +402,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       type: 'success',
       title: newInvoice.type === 'QUOTATION' 
         ? (language === 'ur' ? 'کوٹیشن تیار ہو گئی' : 'Quotation Generated')
+        : newInvoice.type === 'SALES_RETURN'
+        ? (language === 'ur' ? 'سیل واپسی ریکارڈ' : 'Sales Return Recorded')
         : (language === 'ur' ? 'سیل انوائس تیار ہو گئی' : 'Invoice Created'),
       message: `${invoiceNo} - Rs. ${newInvoice.grandTotal.toLocaleString()}`
     });
@@ -387,6 +413,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const updateInvoice = (id: string, invoiceData: Partial<Invoice>) => {
     setInvoices((prev) => prev.map((inv) => (inv.id === id ? { ...inv, ...invoiceData } : inv)));
+    addToast({
+      type: 'info',
+      title: language === 'ur' ? 'بل تبدیل کر دیا گیا' : 'Invoice Updated',
+      message: language === 'ur' ? 'معلومات محفوظ کر لی گئیں۔' : 'Changes saved successfully.'
+    });
   };
 
   const deleteInvoice = (id: string) => {

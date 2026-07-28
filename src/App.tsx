@@ -4,18 +4,37 @@ import { Navbar } from './components/Navbar';
 import { Sidebar } from './components/Sidebar';
 import { Dashboard } from './components/Dashboard';
 import { POSBilling } from './components/POSBilling';
+import { InvoiceHistory } from './components/InvoiceHistory';
 import { InventoryManager } from './components/InventoryManager';
 import { KhataManager } from './components/KhataManager';
 import { SupplierManager } from './components/SupplierManager';
 import { ReportsManager } from './components/ReportsManager';
 import { SettingsModule } from './components/SettingsModule';
 import { ToastContainer } from './components/ToastContainer';
+import { Invoice } from './types';
 
 function MainLayout() {
   const [activeTab, setActiveTab] = useState<string>('dashboard');
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
+  const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null);
 
   const handleOpenQuickSale = () => {
+    setEditingInvoice(null);
+    setActiveTab('pos');
+  };
+
+  const handleEditInvoice = (inv: Invoice) => {
+    setEditingInvoice(inv);
+    setActiveTab('pos');
+  };
+
+  const handleDuplicateInvoice = (inv: Invoice) => {
+    setEditingInvoice({
+      ...inv,
+      id: '',
+      invoiceNo: '',
+      date: new Date().toISOString().split('T')[0]
+    });
     setActiveTab('pos');
   };
 
@@ -46,7 +65,19 @@ function MainLayout() {
             <Dashboard setActiveTab={setActiveTab} onOpenQuickSale={handleOpenQuickSale} />
           )}
 
-          {activeTab === 'pos' && <POSBilling />}
+          {activeTab === 'pos' && (
+            <POSBilling
+              editingInvoice={editingInvoice}
+              onFinishedEdit={() => setEditingInvoice(null)}
+            />
+          )}
+
+          {activeTab === 'history' && (
+            <InvoiceHistory
+              onEditInvoice={handleEditInvoice}
+              onDuplicateInvoice={handleDuplicateInvoice}
+            />
+          )}
 
           {activeTab === 'inventory' && <InventoryManager />}
 

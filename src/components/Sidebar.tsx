@@ -4,6 +4,7 @@ import { getTranslation } from '../translations/translations';
 import { 
   LayoutDashboard, 
   Receipt, 
+  History,
   Package, 
   Users, 
   Truck, 
@@ -43,6 +44,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
       labelKey: 'posBilling' as const,
       icon: Receipt,
       badge: isUrdu ? 'A5 پیڈ' : 'A5 Pad'
+    },
+    {
+      id: 'history',
+      labelKey: 'invoiceHistory' as const,
+      icon: History,
+      badge: isUrdu ? 'بلز' : 'Bills'
     },
     {
       id: 'inventory',

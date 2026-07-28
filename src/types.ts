@@ -54,7 +54,7 @@ export interface LedgerEntry {
   balanceAfter: number;
   description: string;
   referenceNo?: string;
-  paymentMethod?: 'CASH' | 'KHATA' | 'BANK' | 'EASYPAISA';
+  paymentMethod?: PaymentMethod;
 }
 
 export interface InvoiceItem {
@@ -64,32 +64,44 @@ export interface InvoiceItem {
   qty: number;
   unit: UnitType;
   rate: number;
+  discount?: number;
+  tax?: number;
   amount: number;
 }
 
-export type InvoiceType = 'QUOTATION' | 'INVOICE';
-export type PaymentMethod = 'CASH' | 'KHATA' | 'BANK' | 'EASYPAISA';
-export type PaymentStatus = 'PAID' | 'PARTIAL' | 'UNPAID';
+export type InvoiceType = 'INVOICE' | 'QUOTATION' | 'CASH_SALE' | 'CREDIT_SALE' | 'SALES_RETURN';
+export type PaymentMethod = 'CASH' | 'KHATA' | 'BANK' | 'EASYPAISA' | 'JAZZCASH' | 'MULTIPLE';
+export type PaymentStatus = 'PAID' | 'PARTIAL' | 'UNPAID' | 'DRAFT' | 'CANCELLED' | 'RETURNED';
 
 export interface Invoice {
   id: string;
   invoiceNo: string;
+  manualInvoiceNo?: string;
   type: InvoiceType;
   date: string;
+  time?: string;
+  financialYear?: string;
   customerId?: string;
   customerName: string;
   customerPhone: string;
   customerAddress: string;
+  customerNtn?: string;
   items: InvoiceItem[];
   subTotal: number;
   discount: number;
+  taxRate?: number;
+  taxAmount?: number;
+  freightAmount?: number;
   grandTotal: number;
   paymentMethod: PaymentMethod;
   paymentStatus: PaymentStatus;
   paidAmount: number;
   balanceDue: number;
+  receivedCash?: number;
+  changeReturn?: number;
   notes?: string;
   createdByName?: string;
+  isDraft?: boolean;
 }
 
 export interface Supplier {
