@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState, useRef } from 'react';
 import { Invoice } from '../types';
 import { useApp } from '../context/AppContext';
-import { Printer, Share2, Download, CheckCircle, FileText, Smartphone } from 'lucide-react';
+import { Printer, Share2, Download, CheckCircle, FileText, Smartphone, Loader2, FileDown } from 'lucide-react';
+import { generateInvoicePDF } from '../utils/pdfExport';
 
 interface A5InvoicePadProps {
   invoice: Invoice;
@@ -14,6 +15,8 @@ export const A5InvoicePad: React.FC<A5InvoicePadProps> = ({ invoice, onClose }) 
   const company = settings.company;
 
   const isUrdu = language === 'ur';
+  const padRef = useRef<HTMLDivElement>(null);
+  const [isExportingPDF, setIsExportingPDF] = useState(false);
 
   // Total rows to display on the pre-printed pad (Pad standard is 15 rows)
   const TOTAL_ROWS = 15;
@@ -23,6 +26,65 @@ export const A5InvoicePad: React.FC<A5InvoicePadProps> = ({ invoice, onClose }) 
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const handleDownloadPDF = async () => {
+    if (!padRef.current) return;
+    try {
+      setIsExportingPDF(true);
+      const { pdf, fileName } = await generateInvoicePDF(padRef.current, invoice);
+      pdf.save(fileName);
+    } catch (error) {
+      console.error('Failed to generate PDF:', error);
+      alert(isUrdu ? 'پی ڈی ایف بنانے میں مسئلہ پیش آیا۔' : 'Failed to generate PDF.');
+    } finally {
+      setIsExportingPDF(false);
+    }
+  };
+
+  const handleWhatsAppSharePDF = async () => {
+    if (!padRef.current) return;
+    try {
+      setIsExportingPDF(true);
+      const { pdf, fileName, file } = await generateInvoicePDF(padRef.current, invoice);
+
+      const rawPhone = invoice.customerPhone.replace(/[^0-9]/g, '');
+      const formattedPhone = rawPhone.startsWith('0') ? '92' + rawPhone.substring(1) : rawPhone;
+
+      const summaryText = `*${company.nameUr} (${company.nameEn})*\n📍 ${company.addressUr}\n☎ ${company.phone}\n-----------------------------------\n*${invoice.type === 'QUOTATION' ? 'کوٹیشن / ESTIMATE' : 'فروخت کا بل / INVOICE'}*\n*نمبر:* ${invoice.invoiceNo}\n*تاریخ:* ${invoice.date}\n*گاہک:* ${invoice.customerName} (${invoice.customerPhone})\n*کل رقم (Grand Total):* Rs. ${invoice.grandTotal.toLocaleString()}\n${invoice.balanceDue > 0 ? `*بقایا واجب الادا (Khata):* Rs. ${invoice.balanceDue.toLocaleString()}` : '*مکمل ادا شدہ (PAID)*'}\n-----------------------------------\nشكریہ! کامل ٹریڈرز فیصل آباد`;
+
+      // Check if Web Share API supports file sharing directly (e.g. Mobile browser)
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          title: `${company.nameEn} Invoice ${invoice.invoiceNo}`,
+          text: summaryText,
+          files: [file],
+        });
+      } else {
+        // Fallback: Download the PDF file and open WhatsApp chat
+        pdf.save(fileName);
+
+        const alertMsg = isUrdu
+          ? `پی ڈی ایف فائل (${fileName}) ڈاؤن لوڈ کر دی گئی ہے۔ واٹس ایپ کھلے گا، براہ کرم فائل چیٹ میں منسلک فرمائیں۔`
+          : `PDF file (${fileName}) downloaded. Opening WhatsApp, please attach the PDF file in the chat.`;
+
+        alert(alertMsg);
+
+        const encodedMsg = encodeURIComponent(
+          `${summaryText}\n\n📄 *رسمی پی ڈی ایف بل ڈاؤن لوڈ کر دیا گیا ہے (${fileName})۔ براہ کرم چیٹ میں منسلک فرمائیں۔*`
+        );
+        const url = formattedPhone
+          ? `https://wa.me/${formattedPhone}?text=${encodedMsg}`
+          : `https://wa.me/?text=${encodedMsg}`;
+
+        window.open(url, '_blank');
+      }
+    } catch (error) {
+      console.error('Failed to share PDF via WhatsApp:', error);
+      alert(isUrdu ? 'واٹس ایپ پر پی ڈی ایف شیئر کرنے میں مسئلہ پیش آیا۔' : 'Error sharing PDF via WhatsApp.');
+    } finally {
+      setIsExportingPDF(false);
+    }
   };
 
   const handleWhatsAppShare = () => {
@@ -86,21 +148,54 @@ ${invoice.balanceDue > 0 ? `*بقایا واجب الادا (Khata):* Rs. ${invo
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Print Button */}
           <button
             onClick={handlePrint}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl transition shadow-sm active:scale-95"
+            disabled={isExportingPDF}
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl transition shadow-sm active:scale-95 disabled:opacity-50"
           >
             <Printer className="w-4 h-4" />
             <span>{isUrdu ? 'پرنٹ پینڈ (A5)' : 'Print A5 Pad'}</span>
           </button>
 
+          {/* Download PDF Button */}
+          <button
+            onClick={handleDownloadPDF}
+            disabled={isExportingPDF}
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-xl transition shadow-sm active:scale-95 disabled:opacity-50"
+          >
+            {isExportingPDF ? (
+              <Loader2 className="w-4 h-4 animate-spin text-white" />
+            ) : (
+              <FileDown className="w-4 h-4" />
+            )}
+            <span>{isUrdu ? 'ڈاؤن لوڈ PDF' : 'Download PDF'}</span>
+          </button>
+
+          {/* Share PDF on WhatsApp */}
+          <button
+            onClick={handleWhatsAppSharePDF}
+            disabled={isExportingPDF}
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl transition shadow-sm active:scale-95 disabled:opacity-50 font-urdu"
+          >
+            {isExportingPDF ? (
+              <Loader2 className="w-4 h-4 animate-spin text-white" />
+            ) : (
+              <Smartphone className="w-4 h-4" />
+            )}
+            <span>{isUrdu ? 'واٹس ایپ PDF' : 'WhatsApp PDF'}</span>
+          </button>
+
+          {/* Share Text Summary on WhatsApp */}
           <button
             onClick={handleWhatsAppShare}
-            className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl transition shadow-sm active:scale-95"
+            disabled={isExportingPDF}
+            className="flex items-center gap-1.5 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-emerald-400 text-xs font-semibold rounded-xl transition shadow-sm active:scale-95 disabled:opacity-50"
+            title={isUrdu ? 'صرف ٹیکسٹ میسج واٹس ایپ کریں' : 'Send Text Bill'}
           >
-            <Smartphone className="w-4 h-4" />
-            <span>{isUrdu ? 'واٹس ایپ بل' : 'Send WhatsApp'}</span>
+            <Share2 className="w-3.5 h-3.5" />
+            <span>{isUrdu ? 'ٹیکسٹ بل' : 'Text Bill'}</span>
           </button>
 
           {onClose && (
@@ -116,6 +211,7 @@ ${invoice.balanceDue > 0 ? `*بقایا واجب الادا (Khata):* Rs. ${invo
 
       {/* Printable A5 Pad Container (148mm x 210mm proportions) */}
       <div 
+        ref={padRef}
         className="printable-a5-pad relative bg-white text-slate-900 shadow-2xl rounded-sm border border-slate-200 overflow-hidden select-text text-xs"
         style={{
           width: '148mm',
